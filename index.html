@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Music Player</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css"
+    />
+
+    <style>
+      * {
+        box-sizing: border-box;
+        font-family: Nunito, sans-serif;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      div.container {
+        width: 450px;
+        height: 500px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background-color: red;
+        border-radius: 20px;
+        background-color: #e7e7e7;
+        box-shadow: 0 15px 30px 5px rgb(0 0 0 / 30%);
+        position: relative;
+      }
+      .container .image {
+        width: 85%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        top: -12%;
+      }
+      .container .image img {
+        max-width: 0;
+        height: 0;
+        object-fit: cover;
+        border-radius: 20px;
+        box-shadow: 0 5px 30px 5px rgb(0 0 0 / 50%);
+        opacity: 0;
+      }
+      .container .image img.active {
+        max-width: 300px;
+        height: 300px;
+        opacity: 1;
+        transition: all 0.3s;
+      }
+
+      /* setting styles */
+
+      .container .setting {
+        position: absolute;
+        bottom: 0;
+        width: 85%;
+        height: 50%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .setting > * {
+        margin: 7px 0;
+      }
+      .setting .song-name {
+        font-size: 30px;
+        font-weight: bolder;
+      }
+      .setting .singer-name {
+        font-weight: 100;
+        margin: 0;
+      }
+      .setting .buttons {
+        position: absolute;
+        bottom: 6%;
+      }
+      .setting .buttons i {
+        font-size: 40px;
+        margin: 0 15px;
+        cursor: pointer;
+        color: rgb(129, 129, 129);
+      }
+      .setting .buttons i:hover {
+        filter: brightness(80%);
+      }
+      .setting .buttons i:nth-child(2) {
+        font-size: 55px;
+        margin: 0 13px 0 15px;
+      }
+      .setting .time-line {
+        width: 100%;
+        height: 40px;
+        margin: 30px 0 0 0;
+      }
+      .setting .time-line .numbers {
+        display: flex;
+        justify-content: space-between;
+      }
+      .setting .time-line .time-passed {
+        width: 100%;
+        cursor: pointer;
+        margin-top: 7px;
+      }
+
+      .img-blur-container {
+        position: fixed;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        z-index: -1;
+      }
+      .img-blur-container img.background-blur-img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        margin: auto;
+        min-width: 50%;
+        min-height: 50%;
+        filter: blur(15px);
+        -webkit-filter: blur(50px);
+        transform: scale(1.1);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="image">
+        <img src="" class="active" alt="coverPhoto" />
+      </div>
+      <div class="setting">
+        <h2 class="song-name"></h2>
+        <h2 class="singer-name"></h2>
+        <div class="time-line">
+          <audio src=""></audio>
+          <div class="numbers">
+            <span class="time-passed">00:00</span>
+            <span class="duration"></span>
+          </div>
+          <div class="time">
+            <input type="range" value="0" min="0" class="time-passed" />
+          </div>
+        </div>
+        <div class="buttons">
+          <div>
+            <i class="fa-solid fa-backward" title="Previous"></i>
+            <i class="fa-solid fa-play main-btn"></i>
+            <i class="fa-solid fa-forward" title="Next"></i>
+          </div>
+          <!-- <div>
+                    <i class="fa-solid fa-volume-xmark"></i>
+                </div> -->
+        </div>
+      </div>
+    </div>
+
+    <div class="img-blur-container">
+      <img src="" alt="" class="background-blur-img" />
+    </div>
+
+    <script>
+      // duration , play() ,pause() ,  currentTime,playbackRate (audio properties and methods)
+      let $,
+        songIndex,
+        inputRange,
+        functions,
+        playBtn,
+        audioElem,
+        musicCover,
+        songName,
+        singerName,
+        backgroundImg,
+        showTimePassed,
+        allBtns,
+        isPlaying,
+        elapsedTime,
+        audioDuration,
+        lastSongPlayed;
+
+      $ = document;
+      playBtn = $.querySelector(".buttons i.main-btn");
+      allBtns = $.querySelectorAll(".buttons i");
+      audioElem = $.querySelector("audio");
+      audioDuration = $.querySelector(".duration");
+      elapsedTime = $.querySelector(".time-passed");
+      musicCover = $.querySelector(".image img");
+      songName = $.querySelector(".song-name");
+      singerName = $.querySelector(".singer-name");
+      inputRange = $.querySelector("input[type='range']"); // this input works as timeline in music player
+      backgroundImg = $.querySelector(".img-blur-container img");
+
+      isPlaying = false;
+      songArray = [];
+      functions = [previousMusic, playSong, nextMusic];
+
+      class CreateSong {
+        constructor(name, artistName, coverImg, audioSrc) {
+          this.name = name;
+          this.artistName = artistName;
+          this.coverImg = coverImg;
+          this.audioSrc = audioSrc;
+          songArray.push(this);
+          this.id = songArray.length - 1;
+        }
+      }
+
+      function playSong() {
+        // at the first time this condition will be false and else would be executed
+        if (isPlaying) {
+          isPlaying = false;
+          playBtn.title = "Play";
+          playBtn.classList.replace("fa-pause", "fa-play");
+          audioElem.pause();
+
+          clearInterval(showTimePassed);
+        } else {
+          isPlaying = true;
+          playBtn.title = "Pause";
+          playBtn.classList.replace("fa-play", "fa-pause");
+          audioElem.play();
+
+          showTimePassed = setInterval(showTime, 1000); // show time in elapsed time variable every second it passes
+
+          evaluateDurationOfSong();
+
+          lastSongPlayed = localStorage.setItem(
+            "currentSong",
+            JSON.stringify(songArray[songIndex])
+          );
+        }
+      }
+
+      function nextMusic() {
+        songIndex = songIndex == songArray.length - 1 ? 0 : (songIndex += 1);
+        songSwitcher(songArray[songIndex]);
+      }
+
+      function previousMusic() {
+        songIndex = songIndex == 0 ? songArray.length - 1 : (songIndex -= 1);
+        songSwitcher(songArray[songIndex]);
+      }
+
+      // this function works for both nextMusic and previousMusic functions and switch the song
+      function songSwitcher(song) {
+        loadSong(song);
+
+        isPlaying = false;
+
+        playSong();
+
+        musicCover.classList.remove("active");
+
+        setTimeout(function () {
+          musicCover.classList.add("active");
+        }, 400);
+      }
+
+      function loadSong(song) {
+        songName.innerHTML = song.name;
+        singerName.innerHTML = song.artistName;
+        musicCover.src = song.coverImg;
+        audioElem.src = song.audioSrc;
+        backgroundImg.src = song.coverImg;
+      }
+
+      // this function evaluate audioElem.currentTime and and convert it to second and minute format like 00:00
+      // and show this value in
+      function showTime() {
+        currentTime = Math.floor(audioElem.currentTime);
+        result = numberToMinute_Seconds(currentTime);
+        inputRange.value = currentTime;
+        elapsedTime.innerHTML = result;
+      }
+
+      // this function give a number and convert it to minute:second format like this 00:00
+      // we give audio.duration and audio.currentTime to this function and it returns minute and seconds format
+      function numberToMinute_Seconds(number) {
+        if (number < 60) {
+          if (number < 10) {
+            second = `0${number}`;
+            minute = 0;
+          } else {
+            second = number;
+            minute = 0;
+          }
+        } else {
+          minute = Math.floor(number / 60);
+          second = Math.floor(number % 60);
+        }
+        return `${String(minute).length > 1 ? minute : `0${minute}`}:${
+          String(second).length > 1 ? second : `0${second}`
+        }`;
+      }
+
+      function evaluateDurationOfSong() {
+        setTimeout(() => {
+          let duration = Math.floor(audioElem.duration);
+          audioDuration.innerHTML = numberToMinute_Seconds(duration); // making delay with set Time out to avoid NaN for audio.duration
+          inputRange.max = duration;
+        }, 200);
+      }
+
+      let music1 = new CreateSong(
+        "Developing",
+        "Flora Cash",
+        "./images/Music player/peakpx.jpg",
+        "./media/bazar.m4a"
+      );
+      let music2 = new CreateSong(
+        "Earn",
+        "Linkin Park",
+        "https://images.genius.com/c5a58cdaab9f3199214f0e3c26abbd0e.1000x1000x1.jpg",
+        "./media/html.m4a"
+      );
+      let music3 = new CreateSong(
+        "Html Podcast",
+        "Ozbi",
+        "https://images.genius.com/ee202c6f724ffd4cf61bd01a205eeb47.1000x1000x1.jpg",
+        "./media/kar.m4a"
+      );
+      let music4 = new CreateSong(
+        "Toxic - BoyWithUke",
+        "BoyWithUke",
+        "./media/toxic.jpg",
+        "./media/Toxic - BoyWithUke (320).mp3"
+      );
+
+      // give every button one function that defined in functions variable up here ↑↑
+      allBtns.forEach((button, index) => {
+        button.onclick = functions[index];
+      });
+
+      inputRange.addEventListener("input", function () {
+        audioElem.currentTime = inputRange.value;
+        elapsedTime.innerHTML = numberToMinute_Seconds(inputRange.value);
+      });
+
+      // change audio.currentTime when changing the input type range value
+      audioElem.addEventListener("ended", nextMusic);
+
+      // load last song that played and if user use the music player for the first time it gives default song
+      window.addEventListener("load", function () {
+        evaluateDurationOfSong();
+        lastSongPlayed = JSON.parse(localStorage.getItem("currentSong"));
+        if (lastSongPlayed == null) {
+          songIndex = 0;
+          lastSongPlayed = songArray[0];
+        } else {
+          songIndex = lastSongPlayed.id;
+        }
+        loadSong(lastSongPlayed);
+      });
+
+      /*
+some features to add later:
+1.add buttons like volume down or volume up and add 5 seconds or decrease 5 seconds 
+2.responsive
+3.change style of timeline(input[type="range"]) and add some good styles to that for better appearance
+*/
+    </script>
+  </body>
+</html>
